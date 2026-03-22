@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package minips;
+
+option go_package = "github.com/teim/minips/server/internal/pb";
+
+service ParameterServer {
+  rpc Register(RegisterRequest) returns (RegisterReply);
+  rpc Pull(PullRequest) returns (stream ParamChunk);
+  rpc Push(stream GradChunk) returns (PushReply);
+  rpc Clock(ClockRequest) returns (ClockReply);
+  rpc Stats(StatsRequest) returns (StatsReply);
+}
+
+enum Encoding {
+  DENSE_F32 = 0;
+  TOPK = 1;
+  INT8 = 2;
+}
+
+message ParamSpec {
+  string name = 1;
+  repeated int64 shape = 2;
+  string dtype = 3;
+}
+
+message RegisterRequest {
+  int32 worker_id = 1;
+}
+
+message RegisterReply {
+  int32 num_workers = 1;
+  repeated ParamSpec params = 2;
+  string mode = 3;
+  int32 staleness = 4;
+}
+
+message PullRequest {
+  int32 worker_id = 1;
+  int64 clock = 2;
+}
+
+message ParamChunk {
+  string name = 1;
+  int64 offset = 2;
+  bytes data = 3;
+  int64 min_clock = 4;
+}
+
+message GradChunk {
+  int32 worker_id = 1;
+  int64 clock = 2;
+  string name = 3;
+  Encoding encoding = 4;
+  bytes data = 5;
+}
+
+message PushReply {}
+
+message ClockRequest {
+  int32 worker_id = 1;
+  int64 clock = 2;
+}
+
+message ClockReply {}
+
+message StatsRequest {}
+
+message WorkerStats {
+  int32 worker_id = 1;
+  int64 bytes_in = 2;
+  int64 bytes_out = 3;
+  double wait_seconds = 4;
+  int64 pulls = 5;
+  int64 pushes = 6;
+}
+
+message StatsReply {
+  repeated WorkerStats workers = 1;
+  map<int64, int64> staleness_hist = 2;
+  int64 updates_applied = 3;
+}
