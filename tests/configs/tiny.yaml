@@ -1,0 +1,10 @@
+name: tiny
+workers: 2
+epochs: 4
+batch_size: 32
+lr: 0.1
+model: {name: mlp, in_dim: 32, hidden: 64, num_classes: 4}
+data: {source: synthetic, size: 1024, dim: 32, classes: 4}
+ps: {mode: bsp, shards: 2}
+compression: {kind: none}
+bn_batches: 0
