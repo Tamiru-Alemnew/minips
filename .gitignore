@@ -1,0 +1,9 @@
+bin/
+runs/
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.bin
+results/**/*.pt
