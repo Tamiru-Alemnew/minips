@@ -22,13 +22,14 @@ import (
 const ChunkBytes = 4 << 20
 
 type Config struct {
-	Workers    int
-	Shards     int
-	Mode       string
-	Staleness  int
-	LR         float64
-	TotalSteps int64
-	Optim      shard.Optim
+	Workers     int
+	Shards      int
+	Mode        string
+	Staleness   int
+	LR          float64
+	WarmupSteps int64
+	TotalSteps  int64
+	Optim       shard.Optim
 }
 
 type Server struct {
@@ -62,13 +63,20 @@ func New(cfg Config, tensors []params.Tensor) (*Server, error) {
 
 func (s *Server) Close() { s.group.Close() }
 
-// lr is a cosine schedule over TotalSteps clocks.
 func (s *Server) lr(c int64) float32 {
-	if s.cfg.TotalSteps <= 0 {
-		return float32(s.cfg.LR)
+	return float32(LR(s.cfg.LR, c, s.cfg.WarmupSteps, s.cfg.TotalSteps))
+}
+
+// LR is linear warm-up for warmup clocks, then cosine decay to zero at total.
+func LR(peak float64, c, warmup, total int64) float64 {
+	if c < warmup {
+		return peak * float64(c+1) / float64(warmup)
 	}
-	t := min(float64(c)/float64(s.cfg.TotalSteps), 1)
-	return float32(0.5 * s.cfg.LR * (1 + math.Cos(math.Pi*t)))
+	if total <= warmup {
+		return peak
+	}
+	t := min(float64(c-warmup)/float64(total-warmup), 1)
+	return 0.5 * peak * (1 + math.Cos(math.Pi*t))
 }
 
 func (s *Server) worker(id int32) (*metrics.Worker, error) {

@@ -25,7 +25,8 @@ func main() {
 		mode      = flag.String("mode", "bsp", "bsp, ssp or asp")
 		staleness = flag.Int("staleness", 0, "staleness bound for ssp")
 		lr        = flag.Float64("lr", 0.1, "peak learning rate")
-		steps     = flag.Int64("total-steps", 0, "clocks in the cosine schedule (0 = constant lr)")
+		warmup    = flag.Int64("warmup-steps", 0, "clocks of linear learning-rate warm-up")
+		steps     = flag.Int64("total-steps", 0, "clocks in the schedule (0 = constant lr)")
 		momentum  = flag.Float64("momentum", 0.9, "SGD momentum")
 		wd        = flag.Float64("weight-decay", 5e-4, "weight decay on weight matrices")
 	)
@@ -39,7 +40,7 @@ func main() {
 	}
 	ps, err := server.New(server.Config{
 		Workers: *workers, Shards: *shards, Mode: *mode, Staleness: *staleness,
-		LR: *lr, TotalSteps: *steps,
+		LR: *lr, WarmupSteps: *warmup, TotalSteps: *steps,
 		Optim: shard.Optim{Momentum: float32(*momentum), WeightDecay: float32(*wd)},
 	}, tensors)
 	if err != nil {
