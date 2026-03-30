@@ -24,14 +24,14 @@ def _to_split(x_uint8_nhwc: np.ndarray, y: np.ndarray) -> Split:
     return Split((x - MEAN) / STD, torch.from_numpy(y.astype(np.int64)))
 
 
-def _torchvision(root: str, train: bool) -> Split:
+def _torchvision(root: str, train: bool) -> tuple[np.ndarray, np.ndarray]:
     from torchvision.datasets import CIFAR10
 
     ds = CIFAR10(root, train=train, download=True)
-    return _to_split(ds.data, np.array(ds.targets))
+    return ds.data, np.array(ds.targets)
 
 
-def _folder(root: str, train: bool) -> Split:
+def _folder(root: str, train: bool) -> tuple[np.ndarray, np.ndarray]:
     """CIFAR-10 stored as <root>/{train,test}/<class>/*.jpg, cached to .npz on first use."""
     part = "train" if train else "test"
     cache = Path(root) / f"{part}.npz"
@@ -45,7 +45,7 @@ def _folder(root: str, train: bool) -> Split:
                 ys.append(label)
         np.savez(cache, x=np.stack(xs), y=np.array(ys))
     d = np.load(cache)
-    return _to_split(d["x"], d["y"])
+    return d["x"], d["y"]
 
 
 def _synthetic(train: bool, n: int, dim: int, classes: int) -> Split:
@@ -58,19 +58,19 @@ def _synthetic(train: bool, n: int, dim: int, classes: int) -> Split:
 
 def load(cfg: dict, train: bool) -> Split:
     source = cfg.get("source", "torchvision")
+    if source == "synthetic":
+        return _synthetic(train, cfg.get("size", 2048), cfg.get("dim", 32), cfg.get("classes", 4))
     if source == "torchvision":
-        split = _torchvision(cfg.get("root", "data"), train)
+        x, y = _torchvision(cfg.get("root", "data"), train)
     elif source == "folder":
-        split = _folder(cfg["root"], train)
-    elif source == "synthetic":
-        split = _synthetic(train, cfg.get("size", 2048), cfg.get("dim", 32), cfg.get("classes", 4))
+        x, y = _folder(cfg["root"], train)
     else:
         raise ValueError(f"unknown data source {source!r}")
     limit = cfg.get("train_size" if train else "test_size")
     if limit:
-        idx = torch.randperm(len(split), generator=torch.Generator().manual_seed(0))[:limit]
-        split = Split(split.x[idx], split.y[idx], split.image)
-    return split
+        idx = np.random.default_rng(0).permutation(len(y))[:limit]
+        x, y = x[idx], y[idx]
+    return _to_split(x, y)
 
 
 def shard(split: Split, num_shards: int, index: int) -> Split:

@@ -55,7 +55,9 @@ def run(cfg_path: str, seed: int, out: Path, server_bin: Path) -> dict:
         server = subprocess.Popen(
             [str(server_bin), "--addr", addr, "--init", str(init), "--workers", str(n),
              "--shards", str(ps.get("shards", 4)), "--mode", ps["mode"], "--staleness", str(ps.get("staleness", 0)),
-             "--lr", str(cfg["lr"]), "--total-steps", str(cfg["epochs"] * steps)],
+             "--lr", str(cfg["lr"]), "--total-steps", str(cfg["epochs"] * steps),
+             "--warmup-steps", str(cfg.get("warmup_epochs", 0) * steps),
+             "--momentum", str(cfg.get("momentum", 0.9)), "--weight-decay", str(cfg.get("weight_decay", 5e-4))],
             stderr=open(tmp / "server.log", "w"),
         )
         try:
