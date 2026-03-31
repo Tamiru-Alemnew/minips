@@ -50,7 +50,7 @@ def run(cfg_path: str, seed: int, out: Path, server_bin: Path) -> dict:
         write(model, str(init))
 
         train = data.load(cfg["data"], train=True)
-        steps = config.steps_per_epoch(cfg, len(data.shard(train, n, 0)))
+        steps = config.steps_per_epoch(cfg, data.shard_len(cfg["data"], n))
         addr = f"127.0.0.1:{free_port()}"
         server = subprocess.Popen(
             [str(server_bin), "--addr", addr, "--init", str(init), "--workers", str(n),

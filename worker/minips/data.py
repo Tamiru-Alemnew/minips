@@ -32,10 +32,10 @@ def _torchvision(root: str, train: bool) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _folder(root: str, train: bool) -> tuple[np.ndarray, np.ndarray]:
-    """CIFAR-10 stored as <root>/{train,test}/<class>/*.jpg, cached to .npz on first use."""
+    """CIFAR-10 stored as <root>/{train,test}/<class>/*.jpg, cached to .npy on first use."""
     part = "train" if train else "test"
-    cache = Path(root) / f"{part}.npz"
-    if not cache.exists():
+    xf, yf = Path(root) / f"{part}_x.npy", Path(root) / f"{part}_y.npy"
+    if not yf.exists():
         from PIL import Image
 
         xs, ys = [], []
@@ -43,9 +43,9 @@ def _folder(root: str, train: bool) -> tuple[np.ndarray, np.ndarray]:
             for f in sorted((Path(root) / part / cls).glob("*")):
                 xs.append(np.asarray(Image.open(f).convert("RGB")))
                 ys.append(label)
-        np.savez(cache, x=np.stack(xs), y=np.array(ys))
-    d = np.load(cache)
-    return d["x"], d["y"]
+        np.save(xf, np.stack(xs))
+        np.save(yf, np.array(ys))
+    return np.load(xf, mmap_mode="r"), np.load(yf)
 
 
 def _synthetic(train: bool, n: int, dim: int, classes: int) -> Split:
@@ -56,28 +56,39 @@ def _synthetic(train: bool, n: int, dim: int, classes: int) -> Split:
     return Split(x, y, image=False)
 
 
-def load(cfg: dict, train: bool) -> Split:
+def shard_indices(size: int, num_shards: int, index: int) -> np.ndarray:
+    """Disjoint shards from one fixed permutation, identical for every run."""
+    if num_shards == 1:
+        return np.arange(size)
+    perm = np.random.default_rng(0).permutation(size)
+    return np.array_split(perm, num_shards)[index]
+
+
+def load(cfg: dict, train: bool, num_shards: int = 1, index: int = 0) -> Split:
+    """Loads one shard of a split; only that shard is ever converted to float."""
     source = cfg.get("source", "torchvision")
     if source == "synthetic":
-        return _synthetic(train, cfg.get("size", 2048), cfg.get("dim", 32), cfg.get("classes", 4))
+        split = _synthetic(train, cfg.get("size", 2048), cfg.get("dim", 32), cfg.get("classes", 4))
+        idx = torch.from_numpy(shard_indices(len(split), num_shards, index))
+        return Split(split.x[idx], split.y[idx], image=False)
     if source == "torchvision":
         x, y = _torchvision(cfg.get("root", "data"), train)
     elif source == "folder":
         x, y = _folder(cfg["root"], train)
     else:
         raise ValueError(f"unknown data source {source!r}")
+    keep = np.arange(len(y))
     limit = cfg.get("train_size" if train else "test_size")
     if limit:
-        idx = np.random.default_rng(0).permutation(len(y))[:limit]
-        x, y = x[idx], y[idx]
-    return _to_split(x, y)
+        keep = np.sort(np.random.default_rng(0).permutation(len(y))[:limit])
+    keep = keep[shard_indices(len(keep), num_shards, index)]
+    return _to_split(np.ascontiguousarray(x[keep]), y[keep])
 
 
-def shard(split: Split, num_shards: int, index: int) -> Split:
-    """Disjoint shards from one fixed permutation, identical for every run."""
-    perm = torch.randperm(len(split), generator=torch.Generator().manual_seed(0))
-    idx = torch.tensor_split(perm, num_shards)[index]
-    return Split(split.x[idx], split.y[idx], split.image)
+def shard_len(cfg: dict, num_shards: int) -> int:
+    """Size of the smallest training shard, which sets the steps per epoch."""
+    size = cfg.get("train_size") or len(load(cfg, train=True).y)
+    return min(len(a) for a in np.array_split(np.arange(size), num_shards))
 
 
 def augment(x: torch.Tensor, g: torch.Generator) -> torch.Tensor:

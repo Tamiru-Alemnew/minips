@@ -38,8 +38,8 @@ def main():
 
     model = models.build(cfg["model"])
     check_specs(model, client.specs)
-    shard = data.shard(data.load(cfg["data"], train=True), n, args.worker_id)
-    steps = config.steps_per_epoch(cfg, len(shard))
+    shard = data.load(cfg["data"], train=True, num_shards=n, index=args.worker_id)
+    steps = config.steps_per_epoch(cfg, data.shard_len(cfg["data"], n))
     total = cfg["epochs"] * steps
     stream = data.batches(shard, cfg["batch_size"], args.seed * 1000 + args.worker_id)
     compressor = compress.make(cfg.get("compression"))

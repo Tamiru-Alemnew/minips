@@ -1,12 +1,19 @@
+import numpy as np
 import torch
 from minips import data
 
 
 def test_shards_are_disjoint_and_cover():
-    split = data.Split(torch.arange(100).float().view(100, 1), torch.arange(100))
-    shards = [data.shard(split, 8, i) for i in range(8)]
-    ys = torch.cat([s.y for s in shards])
-    assert sorted(ys.tolist()) == list(range(100))
+    idx = np.concatenate([data.shard_indices(100, 8, i) for i in range(8)])
+    assert sorted(idx.tolist()) == list(range(100))
+
+
+def test_synthetic_shards_partition_the_data():
+    cfg = {"source": "synthetic", "size": 64}
+    full = data.load(cfg, train=True)
+    parts = [data.load(cfg, train=True, num_shards=4, index=i) for i in range(4)]
+    assert sum(len(p) for p in parts) == len(full)
+    assert data.shard_len(cfg, 4) == 16
 
 
 def test_augment_keeps_shape_and_content():

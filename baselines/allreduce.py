@@ -63,8 +63,8 @@ def worker(rank: int, n: int, cfg: dict, seed: int, port: int, out_dir: str):
     sent = [0.0]
     ddp.register_comm_hook(None, byte_counting_hook(sent))
 
-    shard = data.shard(data.load(cfg["data"], train=True), n, rank)
-    steps = config.steps_per_epoch(cfg, len(shard))
+    shard = data.load(cfg["data"], train=True, num_shards=n, index=rank)
+    steps = config.steps_per_epoch(cfg, data.shard_len(cfg["data"], n))
     total = cfg["epochs"] * steps
     stream = data.batches(shard, cfg["batch_size"], seed * 1000 + rank)
     opt = make_optimizer(model, cfg)
