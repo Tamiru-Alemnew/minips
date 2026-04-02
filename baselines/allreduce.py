@@ -119,8 +119,7 @@ def main():
     models.load_flat(model, {k: v.numpy() for k, v in saved["final"].items()})
     acc, loss = evaluate.final(model, train, test, cfg.get("bn_batches", 50))
 
-    size = cfg.get("curve_test_size", 2000)
-    curve_test = data.Split(test.x[:size], test.y[:size])
+    curve_test = evaluate.subset(test, cfg.get("curve_test_size", 2000))
     curve = []
     for s in saved["snaps"]:
         models.load_flat(model, {k: v.float().numpy() for k, v in s["params"].items()})

@@ -27,7 +27,7 @@ def free_port() -> int:
 
 def curve(cfg: dict, run_dir: Path, train: data.Split, test: data.Split) -> list[dict]:
     points = []
-    curve_test = data.Split(test.x[: cfg.get("curve_test_size", 2000)], test.y[: cfg.get("curve_test_size", 2000)])
+    curve_test = evaluate.subset(test, cfg.get("curve_test_size", 2000))
     for snap in sorted(run_dir.glob("snap_*.pt")):
         s = torch.load(snap)
         model = models.build(cfg["model"])

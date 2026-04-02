@@ -36,6 +36,12 @@ def accuracy(model: nn.Module, split: data.Split, batch_size: int = 500) -> tupl
     return correct / len(split), loss / len(split)
 
 
+def subset(split: data.Split, size: int) -> data.Split:
+    """A fixed random subset; test files can be sorted by class, so never take a prefix."""
+    idx = torch.randperm(len(split), generator=torch.Generator().manual_seed(0))[:size]
+    return data.Split(split.x[idx], split.y[idx], split.image)
+
+
 def final(model: nn.Module, train: data.Split, test: data.Split, bn_batches: int = 50) -> tuple[float, float]:
     recalibrate_bn(model, train, bn_batches)
     return accuracy(model, test)
