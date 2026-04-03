@@ -25,6 +25,7 @@ def main():
     out_dir = ROOT / "results" / args.matrix
     configs = sorted((ROOT / "experiments" / "configs" / args.matrix).glob("*.yaml"))
     todo = [(c, s) for c in configs if fnmatch.fnmatch(c.stem, args.only) for s in seeds]
+    failed = []
     for i, (cfg, seed) in enumerate(todo, 1):
         out = out_dir / f"{cfg.stem}_s{seed}.json"
         if out.exists() and not args.force:
@@ -33,9 +34,13 @@ def main():
         system = yaml.safe_load(cfg.read_text())["system"]
         print(f"[{i}/{len(todo)}] {cfg.stem} seed={seed}", flush=True)
         t = time.time()
-        subprocess.run([sys.executable, str(SCRIPTS[system]), "--config", str(cfg), "--seed", str(seed),
-                        "--out", str(out)], check=True, cwd=ROOT)
-        print(f"    took {time.time() - t:.0f}s", flush=True)
+        code = subprocess.run([sys.executable, str(SCRIPTS[system]), "--config", str(cfg), "--seed", str(seed),
+                               "--out", str(out)], cwd=ROOT).returncode
+        if code:
+            failed.append(out.name)
+        print(f"    {'FAILED' if code else 'took'} {time.time() - t:.0f}s", flush=True)
+    if failed:
+        sys.exit(f"{len(failed)} runs failed: {', '.join(failed)}; rerun to retry them")
 
 
 if __name__ == "__main__":
