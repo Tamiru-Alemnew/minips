@@ -17,5 +17,5 @@ bn_batches: 50
 curve_test_size: 2000
 system: allreduce
 straggler:
-  worker: 7
+  worker: 1
   slowdown: 0.5

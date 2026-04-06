@@ -1,5 +1,5 @@
 name: bsp_none_straggler
-workers: 8
+workers: 4
 epochs: 8
 batch_size: 128
 lr: 0.4
@@ -23,5 +23,5 @@ ps:
 compression:
   kind: none
 straggler:
-  worker: 7
+  worker: 1
   slowdown: 0.5

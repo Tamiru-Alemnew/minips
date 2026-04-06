@@ -1,5 +1,5 @@
 name: ssp4_topk
-workers: 8
+workers: 4
 epochs: 8
 batch_size: 128
 lr: 0.4

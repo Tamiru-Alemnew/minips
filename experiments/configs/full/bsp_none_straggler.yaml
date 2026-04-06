@@ -22,5 +22,5 @@ ps:
 compression:
   kind: none
 straggler:
-  worker: 7
+  worker: 1
   slowdown: 0.5

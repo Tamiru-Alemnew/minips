@@ -14,7 +14,7 @@ BASE = {
         "threads_per_worker": 1, "bn_batches": 50, "curve_test_size": 2000,
     },
     "smoke": {
-        "workers": 8, "epochs": 8, "batch_size": 128, "lr": 0.4, "warmup_epochs": 1,
+        "workers": 4, "epochs": 8, "batch_size": 128, "lr": 0.4, "warmup_epochs": 1,
         "momentum": 0.9, "weight_decay": 5e-4,
         "model": {"name": "resnet18", "width": 16},
         "data": {"source": "folder", "root": "data/cifar10-jpg", "train_size": 20000},
@@ -33,7 +33,7 @@ COMPRESSION = {
     "topk": {"kind": "topk", "ratio": 0.01},
     "int8": {"kind": "int8"},
 }
-STRAGGLER = {"worker": 7, "slowdown": 0.5}
+STRAGGLER = {"worker": 1, "slowdown": 0.5}
 STRAGGLER_RUNS = ["bsp_none", "bsp_topk", "ssp2_topk", "ssp4_topk"]
 
 

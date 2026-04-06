@@ -23,5 +23,5 @@ compression:
   kind: topk
   ratio: 0.01
 straggler:
-  worker: 7
+  worker: 1
   slowdown: 0.5
