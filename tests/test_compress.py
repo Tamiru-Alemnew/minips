@@ -48,6 +48,18 @@ def test_topk_without_feedback_keeps_no_state():
     assert c.residual == {}
 
 
+def test_momentum_correction_masks_sent_entries():
+    c = compress.TopK(0.1, momentum=0.9)
+    g = grad(100)
+    enc, data = c.encode("w", g)
+    sent = np.flatnonzero(compress.decode(enc, data, 100))
+    assert np.all(c.velocity["w"].numpy()[sent] == 0)
+    unsent = np.setdiff1d(np.arange(100), sent)
+    np.testing.assert_allclose(c.velocity["w"].numpy()[unsent], g.numpy()[unsent])
+    enc, data = c.encode("w", torch.zeros(100))
+    np.testing.assert_allclose(c.velocity["w"].numpy()[unsent][:5] / g.numpy()[unsent][:5], 0.9, rtol=1e-5)
+
+
 def test_int8_error_within_half_scale():
     g = grad(5000) * 3
     enc, data = compress.Int8().encode("w", g)

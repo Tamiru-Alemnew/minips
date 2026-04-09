@@ -19,15 +19,26 @@ class TopK:
 
     Whatever is not sent (the unsent entries plus the float16 rounding error
     of the sent ones) is kept in a residual and added to the next gradient.
+
+    With momentum > 0 the worker applies momentum before sparsifying and
+    clears the momentum of the entries it sent (momentum correction and
+    factor masking, Lin et al. 2018); the server must then run without
+    momentum.
     """
 
-    def __init__(self, ratio: float, error_feedback: bool = True):
+    def __init__(self, ratio: float, error_feedback: bool = True, momentum: float = 0.0):
         self.ratio = ratio
-        self.error_feedback = error_feedback
+        self.error_feedback = error_feedback or momentum > 0
+        self.momentum = momentum
         self.residual: dict[str, torch.Tensor] = {}
+        self.velocity: dict[str, torch.Tensor] = {}
 
     def encode(self, name: str, grad: torch.Tensor) -> tuple[int, bytes]:
         acc = grad.detach().reshape(-1).float()
+        if self.momentum:
+            u = self.velocity.get(name)
+            acc = acc if u is None else self.momentum * u + acc
+            self.velocity[name] = acc
         if self.error_feedback and name in self.residual:
             acc = acc + self.residual[name]
         k = max(1, math.ceil(self.ratio * acc.numel()))
@@ -37,6 +48,9 @@ class TopK:
             res = acc.clone()
             res[idx] -= vals.float()
             self.residual[name] = res
+        if self.momentum:
+            self.velocity[name] = self.velocity[name].clone()
+            self.velocity[name][idx] = 0
         idx_np = idx.numpy().astype("<u4")
         return TOPK, struct.pack("<I", k) + idx_np.tobytes() + vals.numpy().astype("<f2").tobytes()
 
@@ -56,7 +70,7 @@ def make(cfg: dict | None):
     if kind == "none":
         return Dense()
     if kind == "topk":
-        return TopK(cfg.get("ratio", 0.01), cfg.get("error_feedback", True))
+        return TopK(cfg.get("ratio", 0.01), cfg.get("error_feedback", True), cfg.get("momentum_correction", 0.0))
     if kind == "int8":
         return Int8()
     raise ValueError(f"unknown compression {kind!r}")

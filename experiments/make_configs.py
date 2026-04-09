@@ -43,6 +43,9 @@ def runs():
             yield f"{m}_{c}", {"system": "ps", "ps": {**ps, "shards": 4}, "compression": comp}
     yield "bsp_topk_noef", {"system": "ps", "ps": {"mode": "bsp", "shards": 4},
                             "compression": {**COMPRESSION["topk"], "error_feedback": False}}
+    for m in ("bsp", "ssp4"):
+        yield f"{m}_topk_mc", {"system": "ps", "ps": {**MODES[m], "shards": 4}, "momentum": 0.0,
+                               "compression": {**COMPRESSION["topk"], "momentum_correction": 0.9}}
     yield "allreduce", {"system": "allreduce"}
     for name in STRAGGLER_RUNS:
         m, c = name.split("_")
