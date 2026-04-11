@@ -58,11 +58,14 @@ def table(rows: list[dict]) -> str:
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for r in rows:
-        out.append(
-            f"| {r['name']} | {r['seeds']} | {r['acc']:.4f}{r['acc_spread']} | {r.get('acc_delta', 0) * 100:+.2f} pp "
-            f"| {r['wall']:.0f} | {r.get('speedup', 1):.2f}× | {r['bytes'] / 2**20:,.0f} | {r.get('comm_x', 1):.1f}× "
-            f"| {r['wait']:.1f} |"
-        )
+        ps = r["system"] == "ps"
+        cells = [
+            r["name"], str(r["seeds"]), f"{r['acc']:.4f}{r['acc_spread']}", f"{r.get('acc_delta', 0) * 100:+.2f} pp",
+            f"{r['wall']:.0f}", f"{r.get('speedup', 1):.2f}×", f"{r['bytes'] / 2**20:,.0f}" + ("" if ps else "*"),
+            f"{r.get('comm_x', 1):.1f}×", f"{r['wait']:.1f}" if ps else "n/a",
+        ]
+        out.append("| " + " | ".join(cells) + " |")
+    out.append("\n\\* All-reduce bytes are computed from DDP bucket sizes (ring: 2(N−1)/N per rank), not measured.")
     return "\n".join(out) + "\n"
 
 
@@ -97,7 +100,6 @@ def plot_bytes(runs, out: Path):
         ax.bar([x + width * i for x in range(len(COMPRESSION))], vals, width, color=COLORS[mode], label=mode)
     ax.set_xticks([x + 1.5 * width for x in range(len(COMPRESSION))], COMPRESSION)
     ax.set_ylabel("MiB on the wire per epoch")
-    ax.set_yscale("log")
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(frameon=False, fontsize=8, ncol=4)
     fig.tight_layout()
