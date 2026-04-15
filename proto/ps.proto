@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package minips;
 
-option go_package = "github.com/teim/minips/server/internal/pb";
+option go_package = "github.com/Tamiru-Alemnew/minips/server/internal/pb";
 
 service ParameterServer {
   rpc Register(RegisterRequest) returns (RegisterReply);

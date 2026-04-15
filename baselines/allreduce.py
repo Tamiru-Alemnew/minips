@@ -56,10 +56,11 @@ def worker(rank: int, n: int, cfg: dict, seed: int, port: int, out_dir: str):
     os.environ.update(MASTER_ADDR="127.0.0.1", MASTER_PORT=str(port))
     dist.init_process_group("gloo", rank=rank, world_size=n)
     torch.set_num_threads(cfg.get("threads_per_worker", 1))
+    device = torch.device(cfg.get("device") or ("cuda" if torch.cuda.is_available() else "cpu"))
     torch.manual_seed(seed)
-    model = models.build(cfg["model"])
+    model = models.build(cfg["model"]).to(device)
     torch.manual_seed(seed * 1000 + rank)
-    ddp = DDP(model)
+    ddp = DDP(model, device_ids=[device.index or 0] if device.type == "cuda" else None)
     sent = [0.0]
     ddp.register_comm_hook(None, byte_counting_hook(sent))
 
@@ -77,7 +78,7 @@ def worker(rank: int, n: int, cfg: dict, seed: int, port: int, out_dir: str):
     dist.barrier()
     t_start = time.time()
     for c in range(total):
-        x, y = next(stream)
+        x, y = (t.to(device, non_blocking=True) for t in next(stream))
         opt.zero_grad(set_to_none=True)
         loss = loss_fn(ddp(x), y)
         t0 = time.time()
@@ -88,12 +89,12 @@ def worker(rank: int, n: int, cfg: dict, seed: int, port: int, out_dir: str):
             time.sleep(slowdown * (time.time() - t0))
         if rank == 0 and (c + 1) % steps == 0:
             snaps.append({"epoch": (c + 1) // steps, "time": time.time() - t_start, "loss": loss.item(),
-                          "params": {k: v.detach().half().clone() for k, v in model.named_parameters()}})
+                          "params": {k: v.detach().half().cpu() for k, v in model.named_parameters()}})
     t_end = time.time()
     summary = {"rank": rank, "t_start": t_start, "t_end": t_end, "bytes_sent": sent[0], "steps": total}
     Path(out_dir, f"rank{rank}.json").write_text(json.dumps(summary))
     if rank == 0:
-        torch.save({"final": {k: v.detach().clone() for k, v in model.named_parameters()}, "snaps": snaps},
+        torch.save({"final": {k: v.detach().cpu() for k, v in model.named_parameters()}, "snaps": snaps},
                    Path(out_dir, "rank0.pt"))
     dist.destroy_process_group()
 
@@ -112,7 +113,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         mp.spawn(worker, args=(n, cfg, args.seed, port, tmp), nprocs=n, join=True)
         summaries = [json.loads(Path(tmp, f"rank{r}.json").read_text()) for r in range(n)]
-        saved = torch.load(Path(tmp, "rank0.pt"))
+        saved = torch.load(Path(tmp, "rank0.pt"), map_location="cpu")
 
     train, test = data.load(cfg["data"], train=True), data.load(cfg["data"], train=False)
     model = models.build(cfg["model"])

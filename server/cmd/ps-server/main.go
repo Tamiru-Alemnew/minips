@@ -10,10 +10,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/teim/minips/server/internal/params"
-	"github.com/teim/minips/server/internal/pb"
-	"github.com/teim/minips/server/internal/server"
-	"github.com/teim/minips/server/internal/shard"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/pb"
+	"github.com/Tamiru-Alemnew/minips/server/internal/server"
+	"github.com/Tamiru-Alemnew/minips/server/internal/shard"
 )
 
 func main() {

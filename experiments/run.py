@@ -29,7 +29,7 @@ def curve(cfg: dict, run_dir: Path, train: data.Split, test: data.Split) -> list
     points = []
     curve_test = evaluate.subset(test, cfg.get("curve_test_size", 2000))
     for snap in sorted(run_dir.glob("snap_*.pt")):
-        s = torch.load(snap)
+        s = torch.load(snap, map_location="cpu")
         model = models.build(cfg["model"])
         models.load_flat(model, {k: v.float().numpy() for k, v in s["params"].items()})
         evaluate.recalibrate_bn(model, train, cfg.get("bn_batches", 20))

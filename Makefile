@@ -1,5 +1,5 @@
 PY ?= python3
-GO_PKG := github.com/teim/minips/server/internal/pb
+GO_PKG := github.com/Tamiru-Alemnew/minips/server/internal/pb
 
 .PHONY: build proto test test-go test-py integration lint bench reproduce smoke plot clean
 

@@ -1,4 +1,4 @@
-module github.com/teim/minips/server
+module github.com/Tamiru-Alemnew/minips/server
 
 go 1.22
 

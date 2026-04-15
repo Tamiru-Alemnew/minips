@@ -11,7 +11,7 @@ DENSE, TOPK, INT8 = ps_pb2.DENSE_F32, ps_pb2.TOPK, ps_pb2.INT8
 
 class Dense:
     def encode(self, name: str, grad: torch.Tensor) -> tuple[int, bytes]:
-        return DENSE, grad.detach().reshape(-1).numpy().astype("<f4").tobytes()
+        return DENSE, grad.detach().reshape(-1).float().cpu().numpy().astype("<f4").tobytes()
 
 
 class TopK:
@@ -51,13 +51,13 @@ class TopK:
         if self.momentum:
             self.velocity[name] = self.velocity[name].clone()
             self.velocity[name][idx] = 0
-        idx_np = idx.numpy().astype("<u4")
-        return TOPK, struct.pack("<I", k) + idx_np.tobytes() + vals.numpy().astype("<f2").tobytes()
+        idx_np = idx.cpu().numpy().astype("<u4")
+        return TOPK, struct.pack("<I", k) + idx_np.tobytes() + vals.cpu().numpy().astype("<f2").tobytes()
 
 
 class Int8:
     def encode(self, name: str, grad: torch.Tensor) -> tuple[int, bytes]:
-        g = grad.detach().reshape(-1).float().numpy()
+        g = grad.detach().reshape(-1).float().cpu().numpy()
         peak = float(np.abs(g).max()) if g.size else 0.0
         scale = peak / 127 if peak > 0 else 1.0
         q = np.clip(np.rint(g / scale), -127, 127).astype(np.int8)

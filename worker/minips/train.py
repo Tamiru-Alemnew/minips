@@ -36,7 +36,8 @@ def main():
     reg = client.register()
     n, mode, staleness = reg.num_workers, reg.mode, reg.staleness
 
-    model = models.build(cfg["model"])
+    device = torch.device(cfg.get("device") or ("cuda" if torch.cuda.is_available() else "cpu"))
+    model = models.build(cfg["model"]).to(device)
     check_specs(model, client.specs)
     shard = data.load(cfg["data"], train=True, num_shards=n, index=args.worker_id)
     steps = config.steps_per_epoch(cfg, data.shard_len(cfg["data"], n))
@@ -62,11 +63,13 @@ def main():
             models.load_flat(model, weights)
             pulls += 1
         t1 = time.time()
-        x, y = next(stream)
+        x, y = (t.to(device, non_blocking=True) for t in next(stream))
         model.zero_grad(set_to_none=True)
         loss = loss_fn(model(x), y)
         loss.backward()
         grads = [(name, *compressor.encode(name, p.grad)) for name, p in params]
+        if device.type == "cuda":
+            torch.cuda.synchronize()
         t2 = time.time()
         client.push(c, grads)
         client.clock(c)
@@ -75,7 +78,7 @@ def main():
         if slowdown:
             time.sleep(slowdown * (t2 - t1))
         if snapshot and (c + 1) % steps == 0:
-            state = {name: p.detach().half().clone() for name, p in params}
+            state = {name: p.detach().half().cpu() for name, p in params}
             torch.save({"epoch": (c + 1) // steps, "time": time.time() - t_start, "loss": loss.item(), "params": state},
                        out / f"snap_{(c + 1) // steps:03d}.pt")
 

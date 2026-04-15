@@ -68,4 +68,4 @@ def param_count(model: nn.Module) -> int:
 def load_flat(model: nn.Module, weights: dict) -> None:
     with torch.no_grad():
         for name, p in model.named_parameters():
-            p.copy_(torch.from_numpy(weights[name]).view_as(p))
+            p.copy_(torch.from_numpy(weights[name]).view(p.shape))

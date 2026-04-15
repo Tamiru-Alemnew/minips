@@ -11,12 +11,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/teim/minips/server/internal/codec"
-	"github.com/teim/minips/server/internal/consistency"
-	"github.com/teim/minips/server/internal/metrics"
-	"github.com/teim/minips/server/internal/params"
-	"github.com/teim/minips/server/internal/pb"
-	"github.com/teim/minips/server/internal/shard"
+	"github.com/Tamiru-Alemnew/minips/server/internal/codec"
+	"github.com/Tamiru-Alemnew/minips/server/internal/consistency"
+	"github.com/Tamiru-Alemnew/minips/server/internal/metrics"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/pb"
+	"github.com/Tamiru-Alemnew/minips/server/internal/shard"
 )
 
 const ChunkBytes = 4 << 20

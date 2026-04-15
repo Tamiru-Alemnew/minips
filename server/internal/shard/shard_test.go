@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/teim/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
 )
 
 func tensors() []params.Tensor {

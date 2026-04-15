@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/teim/minips/server/internal/params"
-	"github.com/teim/minips/server/internal/pb"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/pb"
 )
 
 func TestFloat16(t *testing.T) {

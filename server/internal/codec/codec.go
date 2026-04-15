@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/teim/minips/server/internal/params"
-	"github.com/teim/minips/server/internal/pb"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/pb"
 )
 
 // Decode turns one tensor's wire payload into a dense gradient of length n.

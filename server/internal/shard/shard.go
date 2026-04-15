@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"github.com/teim/minips/server/internal/params"
+	"github.com/Tamiru-Alemnew/minips/server/internal/params"
 )
 
 type Optim struct {
